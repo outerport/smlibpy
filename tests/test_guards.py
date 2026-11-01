@@ -366,6 +366,18 @@ def test_thicken_refuses_broken_results():
         extrude(CenterArc((0, 0), 10, 0, 180), 20).thicken(-12)
 
 
+def test_a_wrong_coarse_volume_does_not_refuse_a_sound_thicken(monkeypatch):
+    # The kernel's coarse quadrature can return a negative volume for a sound offset of a sheet of
+    # many knot spans; the refusal is confirmed by the error-bounded integration
+    real = Part._kernel_props
+    monkeypatch.setattr(Part, "_kernel_props", lambda self, acc: {**real(self, acc), "volume": -real(self, acc)["volume"]})
+    x, y = np.meshgrid(np.linspace(0, 40, 9), np.linspace(0, 30, 7), indexing="ij")
+    sheet = surface(np.stack([x, y, 2 * np.sin(x / 8) * np.cos(y / 6)], axis=-1))
+    for d in (1, -1):
+        slab = sheet.thicken(d)
+        assert slab.is_valid() and slab.volume == approx(sheet.area, rel=0.05)
+
+
 def test_thicken_both_sides():
     slab = Rectangle(20, 10).thicken(2, both=True)
     assert slab.volume == approx(400)

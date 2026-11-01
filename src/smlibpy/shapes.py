@@ -4843,6 +4843,11 @@ class Part(_Body):
                     volume = float(measured["volume"])
                 elif volume is None:
                     volume = float(self._kernel_props(1e-3)["volume"])
+                    if not volume > 1e-9 * self._extent() ** 3:
+                        # The coarse volume only accepts: on a face of many knot spans it can get
+                        # even the sign wrong, so a refusal stands on the error-bounded integration.
+                        measured = self._props(1e-4)
+                        volume = float(measured["volume"])
             except KernelError:
                 return "a body whose volume cannot be integrated"
             tiny = 1e-9 * self._extent() ** 3
